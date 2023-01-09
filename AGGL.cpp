@@ -14,15 +14,15 @@ namespace AGGL
 
     displayInterface::displayInterface(uint16_t width, uint16_t height)
     {
-        _size.x = 0;
-        _size.y = 0;
-        _size.w = width;
-        _size.h = height;
+        _screen.x = 0;
+        _screen.y = 0;
+        _screen.w = width;
+        _screen.h = height;
     }
 
     box* displayInterface::getSize()
     {
-        return &_size;
+        return &_screen;
     }
 
     graphicsHandle::graphicsHandle()
@@ -65,7 +65,9 @@ namespace AGGL
 
     textHandle::textHandle(int16_t x, int16_t y, const char* text, const uint8_t * font)
     {
-
+        _newArea.x = x;
+        _newArea.y = y;
+        _needUpdate = true;
     }
 
     int32_t textHandle::getPixelAt(int16_t x, int16_t y)

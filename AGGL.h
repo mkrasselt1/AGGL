@@ -10,7 +10,8 @@ namespace AGGL
             OK,
             GENERAL_ERROR,
             OUT_OF_MEMORY,
-            FONT_NOT_SUPPORTED
+            FONT_NOT_SUPPORTED,
+            COMM_ERROR
         }; 
     } // namespace STATUS
 
@@ -48,7 +49,7 @@ namespace AGGL
     class displayInterface
     {
         protected:
-        box _size = {0};
+        box _screen = {0};
         public:
         displayInterface(uint16_t width, uint16_t height);
         virtual ~displayInterface(){}
@@ -97,6 +98,12 @@ namespace AGGL
     STATUS::code addDisplay(displayInterface* display);
     STATUS::code update();
     STATUS::code setColorMode(COLOR_MODE::colormode mode);
+
+    namespace TOOLS
+    {
+        bool rectIntersect(const box *b1, const box *b2);
+    } // namespace TOOLS
+    
 } // namespace AGGL
 
 
