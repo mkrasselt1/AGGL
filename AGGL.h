@@ -80,6 +80,7 @@ namespace AGGL
         void hide();
 
         friend STATUS::code update();
+        friend int32_t getPixelAt(int16_t x, int16_t y);
     };
 
     class textHandle : public graphicsHandle

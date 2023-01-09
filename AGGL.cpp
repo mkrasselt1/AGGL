@@ -22,7 +22,7 @@ namespace AGGL
 
     box* displayInterface::getSize()
     {
-        return _size;
+        return &_size;
     }
 
     graphicsHandle::graphicsHandle()
@@ -30,7 +30,7 @@ namespace AGGL
         elements.push_back(this);
     }
 
-    graphicsHandle::removeHandle()
+    void graphicsHandle::removeHandle()
     {
         if(std::find(elements.begin(), elements.end(), this) != elements.end()){
             elements.erase(std::find(elements.begin(), elements.end(), this));
@@ -63,8 +63,15 @@ namespace AGGL
     }
 
 
-    textHandle::textHandle(int16_t x, int16_t y, const char* text, const uint8_t * font);
-    int32_t textHandle::getPixelAt(int16_t x, int16_t y);
+    textHandle::textHandle(int16_t x, int16_t y, const char* text, const uint8_t * font)
+    {
+
+    }
+
+    int32_t textHandle::getPixelAt(int16_t x, int16_t y)
+    {
+
+    }
 
     STATUS::code addDisplay(displayInterface* display)
     {
@@ -80,7 +87,7 @@ namespace AGGL
             {
                 box bbOld;
                 box bbNew;
-                elem->getUpdateArea(bbOld, bbNew);
+                elem->getUpdateArea(&bbOld, &bbNew);
 
                 //step1: Redraw old bounding box
                 uint8_t *buf = new uint8_t[bbOld.w*bbOld.h];
@@ -95,14 +102,18 @@ namespace AGGL
         int32_t cPixel = COLORS::TRANSPARENT;
         for (auto const& elem:elements)
         {
-            if(elem->needUpdate())
+            if(elem->_visible)
             {
-                int32_t temp = elem->getPixelAt(x, y);
-                if(temp != COLORS::TRANSPARENT)
+                if(elem->_needUpdate)
                 {
-                    cPixel = temp;
+                    int32_t temp = elem->getPixelAt(x, y);
+                    if(temp != COLORS::TRANSPARENT)
+                    {
+                        cPixel = temp;
+                    }
                 }
             }
+            
         }
     }
 
