@@ -51,8 +51,9 @@ namespace AGGL
         protected:
         box _screen = {0};
         public:
-        displayInterface(uint16_t width, uint16_t height);
+        displayInterface(int16_t xOffset, int16_t yOffset, uint16_t width, uint16_t height);
         virtual ~displayInterface(){}
+        virtual bool isPresent(){return false;}
         virtual STATUS::code init(){return STATUS::GENERAL_ERROR;}
         virtual STATUS::code update(box bb, uint8_t* buffer){return STATUS::GENERAL_ERROR;}
         box* getSize();
@@ -79,6 +80,8 @@ namespace AGGL
         virtual int32_t getPixelAt(int16_t x, int16_t y){return 0;}
         void show();
         void hide();
+        void changePosition(int16_t x, int16_t y);
+
 
         friend STATUS::code update();
         friend int32_t getPixelAt(int16_t x, int16_t y);
@@ -89,9 +92,72 @@ namespace AGGL
         private:
         const char * _text = nullptr;
         const uint8_t * _font = nullptr;
+        const uint8_t * _glyph = nullptr;
+        const uint8_t * _glyphBitmap = nullptr;
+        uint8_t _glyphBitmapBitOffset = 0;
+        bool selectGlyph(uint16_t code);
+        int32_t getGlyphPixel(uint8_t x, uint8_t y);
+        box getTextSize();
+        int16_t readBitString(const uint8_t * buf, uint16_t offset, uint16_t len);
+        uint16_t readBitStringU(const uint8_t * buf, uint16_t offset, uint16_t len);
+        uint16_t countOnes(const uint8_t * buf, uint16_t offset);
+
+        struct{
+            box bb;
+            uint16_t pitch;
+        } _glyphData;
+
+        struct __attribute__ ((packed)){
+            uint8_t numberOfGlyphs;
+            uint8_t boundingBoxMode;
+            uint8_t zeroBitRLE;
+            uint8_t oneBitRLE;
+            uint8_t bitCntW;
+            uint8_t bitCntH;
+            uint8_t bitCntX;
+            uint8_t bitCntY;
+            uint8_t bitCntD;
+            uint8_t bbWidth;
+            uint8_t bbHeight;
+            uint8_t bbX;
+            uint8_t bbY;
+            uint8_t asc_A;
+            uint8_t des_g;
+            uint8_t asc_OpenBracket;
+            uint8_t des_CloseBracket;
+            uint16_t offset_A;
+            uint16_t offset_a;
+            uint16_t offset_0x0100;
+        } BDFHeader;
 
         public:
         textHandle(int16_t x, int16_t y, const char* text, const uint8_t * font);
+        void changeFont(const uint8_t * font);
+        void changeScale(uint8_t scale);
+        void changeText(const char* text);
+        int32_t getPixelAt(int16_t x, int16_t y);      
+    };
+
+    class imageTwoColorHandle : public graphicsHandle
+    {
+        private:
+        const uint8_t * _imgBuf = nullptr;
+
+        public:
+        imageTwoColorHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
+        void changeImage(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
+        int32_t getPixelAt(int16_t x, int16_t y);      
+    };
+
+    class image8BitHandle : public graphicsHandle
+    {
+        private:
+        const uint8_t * _imgBuf = nullptr;
+
+        public:
+        image8BitHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
+        ~image8BitHandle();
+        void changeImage(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
         int32_t getPixelAt(int16_t x, int16_t y);      
     };
 
