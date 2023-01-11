@@ -28,6 +28,7 @@ namespace AGGL
     graphicsHandle::graphicsHandle()
     {
         _visible = false;
+        _needUpdate = false;
         elements.push_back(this);
     }
 
@@ -42,7 +43,7 @@ namespace AGGL
     {
         *oldArea = _oldArea;
         *newArea = _newArea;
-        _newArea = _oldArea;
+        _oldArea = _newArea;
         _needUpdate = false;
     }
 
@@ -55,12 +56,15 @@ namespace AGGL
     {
         _visible = true;
         _needUpdate = true;
+        _newArea = getCurrentSize();
     }
 
     void graphicsHandle::hide()
     {
         _visible = false;
         _needUpdate = true;
+        _newArea.w = 0;
+        _newArea.h = 0;
     }
 
     void graphicsHandle::changePosition(int16_t x, int16_t y)
@@ -120,7 +124,6 @@ namespace AGGL
         }
 
         //step 3 collect glyph data and set _glyphbitmap to datastart
-        Serial.printf("%02X %02X\r\n", _glyph[0], _glyph[1]);
         uint16_t bitOffset = 0;
         _glyphData.bb.w = readBitStringU(_glyph, bitOffset, BDFHeader.bitCntW);
         bitOffset += BDFHeader.bitCntW;
@@ -135,13 +138,11 @@ namespace AGGL
         _glyphBitmap = &_glyph[bitOffset/8];
         _glyphBitmapBitOffset = bitOffset % 8;
 
-        Serial.printf("Glyph width: %d\r\n", _glyphData.bb.w);
-        Serial.printf("Glyph height: %d\r\n", _glyphData.bb.h);
-        Serial.printf("Glyph xOff: %d\r\n", _glyphData.bb.x);
-        Serial.printf("Glyph yOff: %d\r\n", _glyphData.bb.y);
-        Serial.printf("Glyph pitch: %d\r\n", _glyphData.pitch);
-    
-        getGlyphPixel(0,0);
+        // Serial.printf("Glyph width: %d\r\n", _glyphData.bb.w);
+        // Serial.printf("Glyph height: %d\r\n", _glyphData.bb.h);
+        // Serial.printf("Glyph xOff: %d\r\n", _glyphData.bb.x);
+        // Serial.printf("Glyph yOff: %d\r\n", _glyphData.bb.y);
+        // Serial.printf("Glyph pitch: %d\r\n", _glyphData.pitch);
         return true;
     }
 
@@ -169,34 +170,29 @@ namespace AGGL
             nRepetition = countOnes(_glyphBitmap, gOffset) + 1;
             gOffset += nRepetition;
 
-
-            // Serial.printf("N Zeros: %d\r\n", nZeros);
-            // Serial.printf("N Ones: %d\r\n", nOnes);
-            // Serial.printf("N Rept: %d\r\n", nRepetition);
-
-
-
             for (size_t i = 0; i < nRepetition; i++)
             {
                 for (size_t j = 0; j < nZeros; j++)
                 {            
-                    Serial.print(" ");     
+                    if(dx == x && dy == y){
+                        return _background;
+                    }
                     dx++;    
                     if(dx == _glyphData.bb.w){
                         dx = 0;
                         dy++;
-                        Serial.println();
                     }
                                        
                 }
                 for (size_t j = 0; j < nOnes; j++)
                 {          
-                    Serial.print("#");    
+                    if(dx == x && dy == y){
+                        return _foreground;
+                    }   
                     dx++;      
                     if(dx == _glyphData.bb.w){
                         dx = 0;
                         dy++;
-                        Serial.println();
                     }
                     
                 }
@@ -206,6 +202,47 @@ namespace AGGL
 
         }
         return COLORS::TRANSPARENT;
+    }
+
+    box textHandle::getTextSize()
+    {
+        const char * ctext = _text;
+        box tSize;
+        tSize.x = _newArea.x;
+        tSize.y = _newArea.y;
+        tSize.w = 0;
+        tSize.h = 0;
+        _numTextLines = 1;
+
+        tSize.h += BDFHeader.bbHeight;
+
+        uint16_t lineW = 0;
+
+        while (*ctext)
+        {            
+            if(*ctext == '\n'){
+                lineW = 0;
+                tSize.h += BDFHeader.bbHeight;
+                _numTextLines++;
+            }else{
+                if(isPrintable(*ctext)){
+                    selectGlyph(*ctext);
+                    if(BDFHeader.boundingBoxMode >= 2){
+                        //Monospace
+                        lineW += BDFHeader.bbWidth;
+                    }else{
+                        lineW += _glyphData.pitch;
+                    }
+                    
+                    if(lineW > tSize.w){
+                        tSize.w = lineW;
+                    }
+                }
+            }
+            ctext++;            
+        }
+        
+        return tSize;
     }
 
     int16_t textHandle::readBitString(const uint8_t *buf, uint16_t offset, uint16_t len)
@@ -272,12 +309,14 @@ namespace AGGL
     {
         _newArea.x = x;
         _newArea.y = y;
-        _oldArea.x = x;
-        _oldArea.y = y;
-        _needUpdate = false;
-        _font = font;
-        _text = text;        
+        _oldArea = _newArea;
+        _oldArea.w = 0;
+        _oldArea.h = 0;
+
+        _text = text;   
+        changeFont(font);     
     }
+
     #define EC16(w) ((w>>8)|((w<<8)&0xFF00))
     void textHandle::changeFont(const uint8_t *font)
     {
@@ -287,33 +326,114 @@ namespace AGGL
         BDFHeader.offset_a = EC16(BDFHeader.offset_a);
         BDFHeader.offset_0x0100 = EC16(BDFHeader.offset_0x0100);
 
-        Serial.printf("numberOfGlyphs: %d\r\n", BDFHeader.numberOfGlyphs);
-        Serial.printf("boundingBoxMode: %d\r\n", BDFHeader.boundingBoxMode);
-        Serial.printf("zeroBitRLE: %d\r\n", BDFHeader.zeroBitRLE);
-        Serial.printf("oneBitRLE: %d\r\n", BDFHeader.oneBitRLE);
-        Serial.printf("bitCntW: %d\r\n", BDFHeader.bitCntW);
-        Serial.printf("bitCntH: %d\r\n", BDFHeader.bitCntH);
-        Serial.printf("bitCntX: %d\r\n", BDFHeader.bitCntX);
-        Serial.printf("bitCntY: %d\r\n", BDFHeader.bitCntY);
-        Serial.printf("bitCntD: %d\r\n", BDFHeader.bitCntD);
-        Serial.printf("bbWidth: %d\r\n", BDFHeader.bbWidth);
-        Serial.printf("bbHeight: %d\r\n", BDFHeader.bbHeight);
-        Serial.printf("bbX: %d\r\n", BDFHeader.bbX);
-        Serial.printf("bbY: %d\r\n", BDFHeader.bbY);
-        Serial.printf("asc_A: %d\r\n", BDFHeader.asc_A);
-        Serial.printf("des_g: %d\r\n", BDFHeader.des_g);
-        Serial.printf("asc_OpenBracket: %d\r\n", BDFHeader.asc_OpenBracket);
-        Serial.printf("des_CloseBracket: %d\r\n", BDFHeader.des_CloseBracket);
-        Serial.printf("offset_A: %d\r\n", BDFHeader.offset_A);
-        Serial.printf("offset_a: %d\r\n", BDFHeader.offset_a);
-        Serial.printf("offset_0x0100: %d\r\n", BDFHeader.offset_0x0100);
+        // Serial.printf("numberOfGlyphs: %d\r\n", BDFHeader.numberOfGlyphs);
+        // Serial.printf("boundingBoxMode: %d\r\n", BDFHeader.boundingBoxMode);
+        // Serial.printf("zeroBitRLE: %d\r\n", BDFHeader.zeroBitRLE);
+        // Serial.printf("oneBitRLE: %d\r\n", BDFHeader.oneBitRLE);
+        // Serial.printf("bitCntW: %d\r\n", BDFHeader.bitCntW);
+        // Serial.printf("bitCntH: %d\r\n", BDFHeader.bitCntH);
+        // Serial.printf("bitCntX: %d\r\n", BDFHeader.bitCntX);
+        // Serial.printf("bitCntY: %d\r\n", BDFHeader.bitCntY);
+        // Serial.printf("bitCntD: %d\r\n", BDFHeader.bitCntD);
+        // Serial.printf("bbWidth: %d\r\n", BDFHeader.bbWidth);
+        // Serial.printf("bbHeight: %d\r\n", BDFHeader.bbHeight);
+        // Serial.printf("bbX: %d\r\n", BDFHeader.bbX);
+        // Serial.printf("bbY: %d\r\n", BDFHeader.bbY);
+        // Serial.printf("asc_A: %d\r\n", BDFHeader.asc_A);
+        // Serial.printf("des_g: %d\r\n", BDFHeader.des_g);
+        // Serial.printf("asc_OpenBracket: %d\r\n", BDFHeader.asc_OpenBracket);
+        // Serial.printf("des_CloseBracket: %d\r\n", BDFHeader.des_CloseBracket);
+        // Serial.printf("offset_A: %d\r\n", BDFHeader.offset_A);
+        // Serial.printf("offset_a: %d\r\n", BDFHeader.offset_a);
+        // Serial.printf("offset_0x0100: %d\r\n", BDFHeader.offset_0x0100);
+        _newArea = getTextSize();
+        _needUpdate = true;
+    }
 
-        selectGlyph('A');
+    void textHandle::changeText(const char *text)
+    {
+        _text = text;
+        _newArea = getTextSize();
+        _needUpdate = true;
     }
 
     int32_t textHandle::getPixelAt(int16_t x, int16_t y)
     {
-        return 0;
+        // Serial.printf("GetPix (%d,%d) in (%d,%d) %d x %d\r\n", x, y, _newArea.x, _newArea.y, _newArea.w, _newArea.h);
+        if( (x >= _newArea.x) && (x < _newArea.x + _newArea.w) && 
+            (y >= _newArea.y) && (y < _newArea.y + _newArea.h)
+        )
+        {
+            
+            int16_t lx = x - _newArea.x;
+            int16_t ly = y - _newArea.y;
+
+            const char * ctext = _text;
+            uint16_t lineX = 0;
+            uint16_t lineY = 0;
+
+
+            if(BDFHeader.boundingBoxMode >= 2){
+                //monospace Font
+                while (*ctext)
+                {            
+                    if(*ctext == '\n'){
+                        lineX = 0;
+                        lineY += BDFHeader.bbHeight;
+                        _numTextLines++;
+                    }else{
+                        if(isPrintable(*ctext)){
+                            if( (lineX + BDFHeader.bbWidth > lx) &&
+                                (lineY + BDFHeader.bbHeight > ly) 
+                            )
+                            {
+                                //we got a hit
+                                if(selectGlyph(*ctext)){
+                                    return getGlyphPixel(lx - lineX, ly - lineY);
+                                }else{
+                                    return COLORS::TRANSPARENT;
+                                }
+                                                                
+                            }
+                            
+                            lineX += BDFHeader.bbWidth;
+                        }
+                    }
+                    ctext++;            
+                }
+            }else{
+                //need to work from start of text to end
+                while (*ctext)
+                {            
+                    if(*ctext == '\n'){
+                        lineX = 0;
+                        lineY += BDFHeader.bbHeight;
+                        _numTextLines++;
+                    }else{
+                        if(isPrintable(*ctext)){
+                            selectGlyph(*ctext);
+                            if( (lineX + _glyphData.pitch > lx) &&
+                                (lineY + BDFHeader.bbHeight > ly) 
+                            )
+                            {
+                                //we got a hit
+                                return getGlyphPixel(lx - lineX, ly - lineY);
+                            }
+                            
+                            lineX += _glyphData.pitch;
+                        }
+                    }
+                    ctext++;            
+                }
+            }
+
+        }
+        return COLORS::TRANSPARENT;
+    }
+
+    box textHandle::getCurrentSize()
+    {
+        return getTextSize();
     }
 
     STATUS::code addDisplay(displayInterface* display)
@@ -336,8 +456,95 @@ namespace AGGL
                 box bbNew;
                 elem->getUpdateArea(&bbOld, &bbNew);
 
-                //step1: Redraw old bounding box
-                uint8_t *buf = new uint8_t[bbOld.w*bbOld.h];
+                //step1: Redraw old bounding box if has area
+
+                uint8_t *buf;
+                int i = 0;
+
+                Serial.printf("Drawing Old Area is %d x %d at %d,%d\r\n", bbOld.w, bbOld.h, bbOld.x, bbOld.y);
+                if(bbOld.w*bbOld.h > 0)
+                {
+                    buf = new uint8_t[bbOld.w*bbOld.h];
+                
+                    for (int16_t y = bbOld.y; y < bbOld.y + bbOld.h; y++)
+                    {
+                        for (int16_t x = bbOld.x; x < bbOld.x + bbOld.w; x++)
+                        {
+                            buf[i] = COLORS::BLACK;
+                            for(auto const& lelem:elements)
+                            {
+                                if(lelem->_visible){
+                                    //todo: build list of graphicsElements intersecting redrawarea before
+                                    int32_t col = lelem->getPixelAt(x,y);
+                                    if(col != COLORS::TRANSPARENT)
+                                    {
+                                        buf[i] = col;
+                                    }
+                                }
+                                
+                            }
+                            i++;                        
+                        }
+                    }
+                    
+                    //step2: find display where to draw the data
+                    for(auto const& disp:displays)
+                    {
+                        disp->update(bbOld, buf);
+                    }
+
+                    delete[] buf;
+                }
+
+
+                
+
+
+                //step1: Redraw new bounding box if has area
+                Serial.printf("Drawing New Area is %d x %d at %d,%d\r\n", bbNew.w, bbNew.h, bbNew.x, bbNew.y);
+                if(bbNew.w*bbNew.h > 0)
+                {
+                    buf = new uint8_t[bbNew.w*bbNew.h];
+                    i = 0;
+                    for (int16_t y = bbNew.y; y < bbNew.y + bbNew.h; y++)
+                    {
+                        for (int16_t x = bbNew.x; x < bbNew.x + bbNew.w; x++)
+                        {
+                            buf[i] = COLORS::BLACK;
+                            for(auto const& lelem:elements)
+                            {
+                                if(lelem->_visible)
+                                {
+                                    //todo: build list of graphicsElements intersecting redrawarea before
+                                    int32_t col = lelem->getPixelAt(x,y);
+                                    if(col != COLORS::TRANSPARENT)
+                                    {
+                                        buf[i] = col;
+                                    }
+                                }
+                                
+                            }
+                            if(buf[i])
+                            {
+                                Serial.print("#");
+                            }else{
+                                Serial.print(" ");
+                            }
+                            i++;     
+                                               
+                        }
+                        Serial.println();
+                    }
+                    
+                    //step2: find display where to draw the data
+                    for(auto const& disp:displays)
+                    {
+                        Serial.println("Sent to Display");
+                        disp->update(bbNew, buf);
+                    }
+
+                    delete[] buf;
+                }
 
             }
         }
@@ -375,6 +582,12 @@ namespace AGGL
     image8BitHandle::image8BitHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t *image)
     {
         _imgBuf = image;
+        _newArea.h = h;
+        _newArea.w = w;
+        _newArea.x = x;
+        _newArea.y = y;
+
+        _oldArea = _newArea;
     }
 
     image8BitHandle::~image8BitHandle()
@@ -383,11 +596,26 @@ namespace AGGL
 
     void image8BitHandle::changeImage(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t *image)
     {
+        _imgBuf = image;
+        _imgW = w;
+        _imgH = h;
+        _newArea.x = x;
+        _newArea.y = y;
+        _newArea = getCurrentSize();
+        _needUpdate = true;
     }
 
     int32_t image8BitHandle::getPixelAt(int16_t x, int16_t y)
     {
-        return 0;
+        return _imgBuf[y*_imgW + x];
+    }
+
+    box image8BitHandle::getCurrentSize()
+    {
+        box tmp = _newArea;
+        tmp.w = _imgW;
+        tmp.h = _imgH;
+        return tmp;
     }
 
 } // namespace AGGL
