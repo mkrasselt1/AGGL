@@ -44,6 +44,11 @@ namespace AGGL
         *oldArea = _oldArea;
         *newArea = _newArea;
         _oldArea = _newArea;
+        if(!_visible)
+        {
+            _oldArea.w = 0;
+            _oldArea.h = 0;
+        }
         _needUpdate = false;
     }
 
@@ -63,8 +68,6 @@ namespace AGGL
     {
         _visible = false;
         _needUpdate = true;
-        _newArea.w = 0;
-        _newArea.h = 0;
     }
 
     void graphicsHandle::changePosition(int16_t x, int16_t y)
@@ -357,6 +360,16 @@ namespace AGGL
         _needUpdate = true;
     }
 
+    void textHandle::setForeground(int32_t color)
+    {
+        _foreground = color;
+    }
+
+    void textHandle::setBackground(int32_t color)
+    {
+        _background = color;
+    }
+
     int32_t textHandle::getPixelAt(int16_t x, int16_t y)
     {
         // Serial.printf("GetPix (%d,%d) in (%d,%d) %d x %d\r\n", x, y, _newArea.x, _newArea.y, _newArea.w, _newArea.h);
@@ -461,7 +474,7 @@ namespace AGGL
                 uint8_t *buf;
                 int i = 0;
 
-                Serial.printf("Drawing Old Area is %d x %d at %d,%d\r\n", bbOld.w, bbOld.h, bbOld.x, bbOld.y);
+                // Serial.printf("Drawing Old Area is %d x %d at %d,%d\r\n", bbOld.w, bbOld.h, bbOld.x, bbOld.y);
                 if(bbOld.w*bbOld.h > 0)
                 {
                     buf = new uint8_t[bbOld.w*bbOld.h];
@@ -501,7 +514,7 @@ namespace AGGL
 
 
                 //step1: Redraw new bounding box if has area
-                Serial.printf("Drawing New Area is %d x %d at %d,%d\r\n", bbNew.w, bbNew.h, bbNew.x, bbNew.y);
+                // Serial.printf("Drawing New Area is %d x %d at %d,%d\r\n", bbNew.w, bbNew.h, bbNew.x, bbNew.y);
                 if(bbNew.w*bbNew.h > 0)
                 {
                     buf = new uint8_t[bbNew.w*bbNew.h];
@@ -524,22 +537,14 @@ namespace AGGL
                                 }
                                 
                             }
-                            if(buf[i])
-                            {
-                                Serial.print("#");
-                            }else{
-                                Serial.print(" ");
-                            }
                             i++;     
                                                
                         }
-                        Serial.println();
                     }
                     
                     //step2: find display where to draw the data
                     for(auto const& disp:displays)
                     {
-                        Serial.println("Sent to Display");
                         disp->update(bbNew, buf);
                     }
 
@@ -551,27 +556,15 @@ namespace AGGL
         return STATUS::OK;
     }
 
-    int32_t getPixelAt(int16_t x, int16_t y)
+    STATUS::code start()
     {
-        //Walk through elements Background to Foreground and compute pixel
-        int32_t cPixel = COLORS::TRANSPARENT;
-        for (auto const& elem:elements)
+        for(auto const& disp:displays)
         {
-            if(elem->_visible)
-            {
-                if(elem->_needUpdate)
-                {
-                    int32_t temp = elem->getPixelAt(x, y);
-                    if(temp != COLORS::TRANSPARENT)
-                    {
-                        cPixel = temp;
-                    }
-                }
-            }
-            
+            disp->init();
         }
-        return cPixel;
+        return STATUS::OK;
     }
+
 
     STATUS::code setColorMode(COLOR_MODE::colormode mode)
     {
@@ -597,25 +590,30 @@ namespace AGGL
     void image8BitHandle::changeImage(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t *image)
     {
         _imgBuf = image;
-        _imgW = w;
-        _imgH = h;
         _newArea.x = x;
         _newArea.y = y;
-        _newArea = getCurrentSize();
+        _newArea.w = w;
+        _newArea.h = h;
         _needUpdate = true;
     }
 
     int32_t image8BitHandle::getPixelAt(int16_t x, int16_t y)
     {
-        return _imgBuf[y*_imgW + x];
+        if( (x >= _newArea.x) && (x < _newArea.x + _newArea.w) && 
+            (y >= _newArea.y) && (y < _newArea.y + _newArea.h)
+        )
+        {
+            
+            int16_t lx = x - _newArea.x;
+            int16_t ly = y - _newArea.y;
+            return _imgBuf[ly*_newArea.w + lx];
+        }
+        return COLORS::TRANSPARENT;
     }
 
     box image8BitHandle::getCurrentSize()
     {
-        box tmp = _newArea;
-        tmp.w = _imgW;
-        tmp.h = _imgH;
-        return tmp;
+        return _newArea;
     }
 
 } // namespace AGGL

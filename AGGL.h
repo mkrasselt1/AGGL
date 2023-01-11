@@ -161,8 +161,6 @@ namespace AGGL
     {
         private:
         const uint8_t * _imgBuf = nullptr;
-        uint16_t _imgW = 0;
-        uint16_t _imgH = 0;
 
         public:
         image8BitHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
@@ -174,6 +172,7 @@ namespace AGGL
 
     STATUS::code addDisplay(displayInterface* display);
     STATUS::code update();
+    STATUS::code start();
     STATUS::code setColorMode(COLOR_MODE::colormode mode);
 
     namespace TOOLS
