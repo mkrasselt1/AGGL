@@ -178,6 +178,8 @@ namespace AGGL
     namespace TOOLS
     {
         bool rectIntersect(const box *b1, const box *b2);
+        uint32_t getRectArea(const box *bb);
+        box getBoundingBox(const box *b1, const box *b2);
     } // namespace TOOLS
     
 } // namespace AGGL
