@@ -11,7 +11,8 @@ namespace AGGL
             GENERAL_ERROR,
             OUT_OF_MEMORY,
             FONT_NOT_SUPPORTED,
-            COMM_ERROR
+            COMM_ERROR,
+            NOT_SUPPORTED
         }; 
     } // namespace STATUS
 
@@ -36,6 +37,7 @@ namespace AGGL
             BLUE =      0x00FF0000,
         }; 
         int32_t fromRGB(uint8_t R, uint8_t G, uint8_t B);
+        uint8_t convert8Bit(int32_t color);
     } // namespace COLORS
 
     typedef struct{
@@ -50,13 +52,16 @@ namespace AGGL
     {
         protected:
         box _screen = {0};
+        COLOR_MODE::colormode _colormode;
         public:
-        displayInterface(int16_t xOffset, int16_t yOffset, uint16_t width, uint16_t height);
+        displayInterface(int16_t xOffset, int16_t yOffset, uint16_t width, uint16_t height, COLOR_MODE::colormode mode);
         virtual ~displayInterface(){}
         virtual bool isPresent(){return false;}
         virtual STATUS::code init(){return STATUS::GENERAL_ERROR;}
         virtual STATUS::code update(box bb, uint8_t* buffer){return STATUS::GENERAL_ERROR;}
+        
         box* getSize();
+        COLOR_MODE::colormode getColorMode();
     };
 
     class graphicsHandle
@@ -89,7 +94,7 @@ namespace AGGL
     class textHandle : public graphicsHandle
     {
         private:
-        const char * _text = nullptr;
+        char _text[100];
         const uint8_t * _font = nullptr;
         const uint8_t * _glyph = nullptr;
         const uint8_t * _glyphBitmap = nullptr;
@@ -173,13 +178,13 @@ namespace AGGL
     STATUS::code addDisplay(displayInterface* display);
     STATUS::code update();
     STATUS::code start();
-    STATUS::code setColorMode(COLOR_MODE::colormode mode);
 
     namespace TOOLS
     {
         bool rectIntersect(const box *b1, const box *b2);
         uint32_t getRectArea(const box *bb);
         box getBoundingBox(const box *b1, const box *b2);
+        box maskRectangle(const box * mask, const box * b);
     } // namespace TOOLS
     
 } // namespace AGGL

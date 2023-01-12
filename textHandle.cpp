@@ -240,8 +240,16 @@ textHandle::textHandle(int16_t x, int16_t y, const char *text, const uint8_t *fo
     _oldArea.w = 0;
     _oldArea.h = 0;
 
-    _text = text;   
-    changeFont(font);     
+    if (text)
+    {
+        strcpy(_text, text);
+    }else{
+        strcpy(_text, "");
+    }    
+    
+    changeFont(font);   
+    //we are Invisible, no need to update  
+    _needUpdate = false;
 }
 
 #define EC16(w) ((w>>8)|((w<<8)&0xFF00))
@@ -279,9 +287,17 @@ void textHandle::changeFont(const uint8_t *font)
 
 void textHandle::changeText(const char *text)
 {
-    _text = text;
-    _newArea = getTextSize();
-    _needUpdate = true;
+    if(strcmp(text, _text)){
+        if (text)
+        {
+            strcpy(_text, text);
+        }else{
+            strcpy(_text, "");
+        } 
+
+        _newArea = getTextSize();
+        _needUpdate = true;
+    }    
 }
 
 void textHandle::setForeground(int32_t color)
