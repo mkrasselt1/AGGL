@@ -86,11 +86,11 @@ namespace AGGL
             }
         }
 
-        // Serial.println("After Combination:");
-        // for (size_t i = 0; i < areaIndex; i++)
-        // {
-        //     Serial.printf("AREA[%d] = (%d,%d) %d x %d\r\n", i, updateAreas[i].x, updateAreas[i].y, updateAreas[i].w, updateAreas[i].h);
-        // }
+        Serial.println("After Combination:");
+        for (size_t i = 0; i < areaIndex; i++)
+        {
+            Serial.printf("AREA[%d] = (%d,%d) %d x %d\r\n", i, updateAreas[i].x, updateAreas[i].y, updateAreas[i].w, updateAreas[i].h);
+        }
 
         //Step 3: go through all available displays and create their respective Screen Update Areas
 
@@ -103,76 +103,111 @@ namespace AGGL
                     box drawArea = TOOLS::maskRectangle(disp->getSize(), &(updateAreas[i]));
                     if(TOOLS::getRectArea(&drawArea))
                     {
-
-                        //step1: Redraw old bounding box if has area
-                        uint8_t *buf;
-                        int i = 0;
-
+                        //step 1: Check if drawArea fits in Buffer, else split it up
+                        uint32_t bytesPerLine = 1;
 
                         //decide on buffersize depending on display colormode
                         switch (disp->getColorMode())
                         {
+                            case COLOR_MODE::TWOCOLOR:
+                                bytesPerLine = drawArea.w / 8;
+                                if(drawArea.w % 8) bytesPerLine++;
+                                break;
 
                             case COLOR_MODE::RGB_8BIT:
-                                buf = new uint8_t[drawArea.w*drawArea.h];
+                                bytesPerLine = drawArea.w;
                                 break;
                             
                             default:
+                                Serial.println("Unsupported Color Mode");
                                 return STATUS::NOT_SUPPORTED;
                                 break;
                         }
-                        
+
+                        uint16_t maxRows = disp->getMaxBufferSize() / bytesPerLine;
+
+                        if(!maxRows)
+                        {
+                            //can't even do a single line
+                            Serial.println("OOM");
+                            return STATUS::OUT_OF_MEMORY;
+                        }
+
+                        box areaPart = drawArea;
+
+                        if(areaPart.h > maxRows)
+                            areaPart.h = maxRows;
+
+                        uint8_t *buf;
+
+                        buf = new uint8_t[disp->getMaxBufferSize()];
 
                         if(!buf)
                         {
                             return STATUS::OUT_OF_MEMORY;
                         }
-                    
-                        for (int16_t y = drawArea.y; y < drawArea.y + drawArea.h; y++)
+
+                        while (areaPart.h)
                         {
-                            for (int16_t x = drawArea.x; x < drawArea.x + drawArea.w; x++)
+                            int buffPos = 0;
+
+                            Serial.printf("Partial AREA = (%d,%d) %d x %d\r\n", areaPart.x, areaPart.y, areaPart.w, areaPart.h);
+                        
+                            for (int16_t y = areaPart.y; y < areaPart.y + areaPart.h; y++)
                             {
-
-                                switch (disp->getColorMode())
+                                for (int16_t x = areaPart.x; x < areaPart.x + areaPart.w; x++)
                                 {
 
-                                    case COLOR_MODE::RGB_8BIT:
-                                        buf[i] = COLORS::BLACK;
-                                        break;
-                                    
-                                    default:
+                                    switch (disp->getColorMode())
+                                    {
+                                        case COLOR_MODE::RGB_8BIT:
+                                            buf[buffPos] = COLORS::BLACK;
+                                            break;
                                         
-                                        break;
-                                }
-                                
-                                for(auto const& lelem:elements)
-                                {
-                                    if(lelem->_visible){
-                                        //todo: build list of graphicsElements intersecting redrawarea before
-                                        int32_t col = lelem->getPixelAt(x,y);
-                                        if(col != COLORS::TRANSPARENT)
-                                        {
-                                            switch (disp->getColorMode())
-                                            {
-
-                                                case COLOR_MODE::RGB_8BIT:
-                                                    buf[i] = COLORS::convert8Bit(col);
-                                                    break;
-                                                
-                                                default:                                                    
-                                                    break;
-                                            }
+                                        default:
                                             
-                                        }
+                                            break;
                                     }
                                     
+                                    for(auto const& lelem:elements)
+                                    {
+                                        if(lelem->_visible){
+                                            //todo: build list of graphicsElements intersecting redrawarea before
+                                            int32_t col = lelem->getPixelAt(x,y);
+                                            if(col != COLORS::TRANSPARENT)
+                                            {
+                                                switch (disp->getColorMode())
+                                                {
+
+                                                    case COLOR_MODE::RGB_8BIT:
+                                                        buf[buffPos] = COLORS::convert8Bit(col);
+                                                        break;
+                                                    
+                                                    default:                                                    
+                                                        break;
+                                                }
+                                                
+                                            }
+                                        }
+                                        
+                                    }
+                                    buffPos++;                        
                                 }
-                                i++;                        
+                            }
+
+                            disp->update(areaPart, buf);
+                                
+                            areaPart.y += areaPart.h;
+                            if(areaPart.y > drawArea.y + drawArea.h)
+                            {
+                                areaPart.h = 0;
+                            }
+                            else if(areaPart.y + areaPart.h > drawArea.y + drawArea.h)
+                            {
+                                areaPart.h = drawArea.y - areaPart.y + drawArea.h;
                             }
                         }
 
-                        disp->update(drawArea, buf);
-                            
                         delete[] buf;
                     }
                 }
@@ -190,53 +225,6 @@ namespace AGGL
             disp->init();
         }
         return STATUS::OK;
-    }
-
-    image8BitHandle::image8BitHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t *image)
-    {
-        _imgBuf = image;
-        _newArea.h = h;
-        _newArea.w = w;
-        _newArea.x = x;
-        _newArea.y = y;
-
-        _oldArea = _newArea;
-    }
-
-    image8BitHandle::~image8BitHandle()
-    {
-    }
-
-    void image8BitHandle::changeImage(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t *image)
-    {
-        _imgBuf = image;
-        _newArea.x = x;
-        _newArea.y = y;
-        _newArea.w = w;
-        _newArea.h = h;
-        _needUpdate = true;
-    }
-
-    int32_t image8BitHandle::getPixelAt(int16_t x, int16_t y)
-    {
-        if( (x >= _newArea.x) && (x < _newArea.x + _newArea.w) && 
-            (y >= _newArea.y) && (y < _newArea.y + _newArea.h)
-        )
-        {
-            
-            int16_t lx = x - _newArea.x;
-            int16_t ly = y - _newArea.y;
-            int32_t color = _imgBuf[ly*_newArea.w + lx];
-            return (color & 0xE0) |
-                    ((color & 0x1C) << 11) |
-                    ((color & 0x03) << 22);
-        }
-        return COLORS::TRANSPARENT;
-    }
-
-    box image8BitHandle::getCurrentSize()
-    {
-        return _newArea;
     }
 
     uint32_t TOOLS::getRectArea(const box *bb)
@@ -327,5 +315,3 @@ namespace AGGL
     }
 
 } // namespace AGGL
-
-

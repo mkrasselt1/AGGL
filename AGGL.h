@@ -47,7 +47,7 @@ namespace AGGL
         uint16_t h;
     } box;
     
-
+#define AGGL_BUFFER_SIZE_UNLIMITED (-1)
     class displayInterface
     {
         protected:
@@ -58,6 +58,7 @@ namespace AGGL
         virtual ~displayInterface(){}
         virtual bool isPresent(){return false;}
         virtual STATUS::code init(){return STATUS::GENERAL_ERROR;}
+        virtual int32_t getMaxBufferSize(){return AGGL_BUFFER_SIZE_UNLIMITED;}
         virtual STATUS::code update(box bb, uint8_t* buffer){return STATUS::GENERAL_ERROR;}
         
         box* getSize();
@@ -154,10 +155,15 @@ namespace AGGL
     {
         private:
         const uint8_t * _imgBuf = nullptr;
+        int32_t _foreground = COLORS::WHITE;
+        int32_t _background = COLORS::TRANSPARENT;
 
         public:
         imageTwoColorHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
+        ~imageTwoColorHandle();
         void changeImage(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
+        void setForeground(int32_t color);
+        void setBackground(int32_t color);
         int32_t getPixelAt(int16_t x, int16_t y);      
         box getCurrentSize();    
     };
