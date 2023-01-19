@@ -60,8 +60,10 @@ namespace AGGL
         virtual STATUS::code init(){return STATUS::GENERAL_ERROR;}
         virtual int32_t getMaxBufferSize(){return AGGL_BUFFER_SIZE_UNLIMITED;}
         virtual STATUS::code update(box bb, uint8_t* buffer){return STATUS::GENERAL_ERROR;}
+        virtual box adjustUpdateBox(box bb){return bb;}
         
         box* getSize();
+        
         COLOR_MODE::colormode getColorMode();
     };
 

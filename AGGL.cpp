@@ -86,11 +86,11 @@ namespace AGGL
             }
         }
 
-        Serial.println("After Combination:");
-        for (size_t i = 0; i < areaIndex; i++)
-        {
-            Serial.printf("AREA[%d] = (%d,%d) %d x %d\r\n", i, updateAreas[i].x, updateAreas[i].y, updateAreas[i].w, updateAreas[i].h);
-        }
+        // Serial.println("After Combination:");
+        // for (size_t i = 0; i < areaIndex; i++)
+        // {
+        //     Serial.printf("AREA[%d] = (%d,%d) %d x %d\r\n", i, updateAreas[i].x, updateAreas[i].y, updateAreas[i].w, updateAreas[i].h);
+        // }
 
         //Step 3: go through all available displays and create their respective Screen Update Areas
 
@@ -110,8 +110,7 @@ namespace AGGL
                         switch (disp->getColorMode())
                         {
                             case COLOR_MODE::TWOCOLOR:
-                                bytesPerLine = drawArea.w / 8;
-                                if(drawArea.w % 8) bytesPerLine++;
+                                bytesPerLine = drawArea.w;
                                 break;
 
                             case COLOR_MODE::RGB_8BIT:
@@ -138,6 +137,8 @@ namespace AGGL
                         if(areaPart.h > maxRows)
                             areaPart.h = maxRows;
 
+                        areaPart = disp->adjustUpdateBox(areaPart);
+
                         uint8_t *buf;
 
                         buf = new uint8_t[disp->getMaxBufferSize()];
@@ -151,7 +152,7 @@ namespace AGGL
                         {
                             int buffPos = 0;
 
-                            Serial.printf("Partial AREA = (%d,%d) %d x %d\r\n", areaPart.x, areaPart.y, areaPart.w, areaPart.h);
+                            // Serial.printf("Partial AREA = (%d,%d) %d x %d\r\n", areaPart.x, areaPart.y, areaPart.w, areaPart.h);
                         
                             for (int16_t y = areaPart.y; y < areaPart.y + areaPart.h; y++)
                             {
@@ -160,6 +161,7 @@ namespace AGGL
 
                                     switch (disp->getColorMode())
                                     {
+                                        case COLOR_MODE::TWOCOLOR:
                                         case COLOR_MODE::RGB_8BIT:
                                             buf[buffPos] = COLORS::BLACK;
                                             break;
@@ -178,6 +180,12 @@ namespace AGGL
                                             {
                                                 switch (disp->getColorMode())
                                                 {
+                                                    case COLOR_MODE::TWOCOLOR:
+                                                        if(col > 0)
+                                                            buf[buffPos] = 1;
+                                                        else
+                                                            buf[buffPos] = 0;
+                                                        break;
 
                                                     case COLOR_MODE::RGB_8BIT:
                                                         buf[buffPos] = COLORS::convert8Bit(col);
@@ -206,6 +214,7 @@ namespace AGGL
                             {
                                 areaPart.h = drawArea.y - areaPart.y + drawArea.h;
                             }
+                            areaPart = disp->adjustUpdateBox(areaPart);
                         }
 
                         delete[] buf;
