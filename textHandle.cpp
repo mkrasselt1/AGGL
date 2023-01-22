@@ -75,9 +75,6 @@ bool textHandle::selectGlyph(uint16_t code)
 
 int32_t textHandle::getGlyphPixel(uint8_t x, uint8_t y)
 {
-    uint8_t cx = 0;
-    uint8_t cy = 0;
-
     uint16_t gOffset = _glyphBitmapBitOffset;
 
     uint16_t nZeros = 0;
@@ -130,6 +127,59 @@ int32_t textHandle::getGlyphPixel(uint8_t x, uint8_t y)
     }
     return COLORS::TRANSPARENT;
 }
+
+void textHandle::fillBufferGlyph(uint16_t xBits, uint16_t y, uint16_t bWidth)
+{
+    uint16_t gOffset = _glyphBitmapBitOffset;
+
+    uint16_t nZeros = 0;
+    uint16_t nOnes = 0;
+    uint16_t nRepetition = 0;
+    uint16_t end = _glyphData.bb.w * _glyphData.bb.h; //number of pixel in glyph
+    uint16_t dx = 0;
+    uint16_t dy = 0;
+    
+    while (true)
+    {
+        //run through glyph until pixel is reached
+        nZeros = readBitStringU(_glyphBitmap, gOffset, BDFHeader.zeroBitRLE);
+        gOffset += BDFHeader.zeroBitRLE;
+        nOnes = readBitStringU(_glyphBitmap, gOffset, BDFHeader.oneBitRLE);
+        gOffset += BDFHeader.oneBitRLE;
+        nRepetition = countOnes(_glyphBitmap, gOffset) + 1;
+        gOffset += nRepetition;
+
+        for (size_t i = 0; i < nRepetition; i++)
+        {
+            for (size_t j = 0; j < nZeros; j++)
+            {            
+                dx++;    
+                if(dx == _glyphData.bb.w){
+                    dx = 0;
+                    dy++;
+                }
+                                    
+            }
+            for (size_t j = 0; j < nOnes; j++)
+            {          
+                //set buffer at xBits + dx, y + dy
+                uint16_t bytePos = (xBits + dx) / 8;
+                uint8_t bitPos = (xBits + dx) % 8;
+                _buffer[((y+dy) * bWidth) + bytePos] |= (1<<bitPos);
+                dx++;      
+                if(dx == _glyphData.bb.w){
+                    dx = 0;
+                    dy++;
+                }
+                
+            }
+        }
+        if(dy == _glyphData.bb.h)
+            break;
+
+    }
+}
+
 
 box textHandle::getTextSize()
 {
@@ -232,6 +282,52 @@ uint16_t textHandle::countOnes(const uint8_t *buf, uint16_t offset)
     return erg;
 }
 
+void textHandle::tryUpdateBuffer()
+{
+    if(_buffer)
+    {
+        delete[] _buffer;
+    }
+
+    //try buffered mode
+    uint16_t bufW = (_newArea.w + 7) / 8;
+    uint16_t bufH = _newArea.h;
+    uint16_t bufSz = bufW * bufH;
+
+    _buffer = new uint8_t[bufW * bufH];
+    if(_buffer)
+    {
+        memset(_buffer, 0, bufSz);
+        //need to work from start of text to end
+
+        const char * ctext = _text;
+        uint16_t lineX = 0;
+        uint16_t lineY = 0;
+
+        while (*ctext)
+        {            
+            if(*ctext == '\n'){
+                lineX = 0;
+                lineY += BDFHeader.bbHeight;
+                _numTextLines++;
+            }else{
+                if(isPrintable(*ctext)){
+                    selectGlyph(*ctext);          
+
+                    fillBufferGlyph(lineX, lineY, bufW);                    
+                    lineX += BDFHeader.bbWidth;;
+                }
+            }
+            ctext++;            
+        }
+        _bufferedMode = true;
+    }
+    else
+    {
+        _bufferedMode = false;
+    }
+}
+
 textHandle::textHandle(int16_t x, int16_t y, const char *text, const uint8_t *font)
 {
     _newArea.x = x;
@@ -283,6 +379,8 @@ void textHandle::changeFont(const uint8_t *font)
     // Serial.printf("offset_0x0100: %d\r\n", BDFHeader.offset_0x0100);
     _newArea = getTextSize();
     _needUpdate = true;
+
+    tryUpdateBuffer();
 }
 
 void textHandle::changeText(const char *text)
@@ -297,7 +395,8 @@ void textHandle::changeText(const char *text)
 
         _newArea = getTextSize();
         _needUpdate = true;
-    }    
+        tryUpdateBuffer();
+    }        
 }
 
 void textHandle::setForeground(int32_t color)
@@ -312,76 +411,104 @@ void textHandle::setBackground(int32_t color)
 
 int32_t textHandle::getPixelAt(int16_t x, int16_t y)
 {
-    // Serial.printf("GetPix (%d,%d) in (%d,%d) %d x %d\r\n", x, y, _newArea.x, _newArea.y, _newArea.w, _newArea.h);
     if( (x >= _newArea.x) && (x < _newArea.x + _newArea.w) && 
         (y >= _newArea.y) && (y < _newArea.y + _newArea.h)
     )
     {
-        
-        int16_t lx = x - _newArea.x;
-        int16_t ly = y - _newArea.y;
-
-        const char * ctext = _text;
-        uint16_t lineX = 0;
-        uint16_t lineY = 0;
-
-
-        if(BDFHeader.boundingBoxMode >= 2){
-            //monospace Font
-            while (*ctext)
-            {            
-                if(*ctext == '\n'){
-                    lineX = 0;
-                    lineY += BDFHeader.bbHeight;
-                    _numTextLines++;
-                }else{
-                    if(isPrintable(*ctext)){
-                        if( (lineX + BDFHeader.bbWidth > lx) &&
-                            (lineY + BDFHeader.bbHeight > ly) 
-                        )
-                        {
-                            //we got a hit
-                            if(selectGlyph(*ctext)){
-                                return getGlyphPixel(lx - lineX, ly - lineY);
-                            }else{
-                                return COLORS::TRANSPARENT;
-                            }
-                                                            
-                        }
-                        
-                        lineX += BDFHeader.bbWidth;
-                    }
-                }
-                ctext++;            
-            }
+        if(_bufferedMode)
+        {
+            // Serial.println("Buffered");
+            return getPixelAtBuffered(x,y);
         }else{
-            //need to work from start of text to end
-            while (*ctext)
-            {            
-                if(*ctext == '\n'){
-                    lineX = 0;
-                    lineY += BDFHeader.bbHeight;
-                    _numTextLines++;
-                }else{
-                    if(isPrintable(*ctext)){
-                        selectGlyph(*ctext);
-                        if( (lineX + _glyphData.pitch > lx) &&
-                            (lineY + BDFHeader.bbHeight > ly) 
-                        )
-                        {
-                            //we got a hit
-                            return getGlyphPixel(lx - lineX, ly - lineY);
-                        }
-                        
-                        lineX += _glyphData.pitch;
-                    }
-                }
-                ctext++;            
-            }
+            // Serial.println("Update in Unbuffered");
+            return getPixelAtUnbuffered(x,y);
         }
-
     }
     return COLORS::TRANSPARENT;
+}
+
+int32_t textHandle::getPixelAtBuffered(int16_t x, int16_t y)
+{        
+    int16_t lx = x - _newArea.x;
+    int16_t ly = y - _newArea.y;
+    uint16_t rx = lx / 8;
+    uint16_t px = lx % 8;
+    uint16_t bytewidth = _newArea.w/8;
+    if(_newArea.w % 8) bytewidth++;
+
+    if(_buffer[ly*bytewidth + rx] & (1<<px)){
+        return _foreground;
+    }else{
+        return _background;
+    }    
+}
+
+int32_t textHandle::getPixelAtUnbuffered(int16_t x, int16_t y)
+{        
+    int16_t lx = x - _newArea.x;
+    int16_t ly = y - _newArea.y;
+
+    const char * ctext = _text;
+    uint16_t lineX = 0;
+    uint16_t lineY = 0;
+
+
+    if(BDFHeader.boundingBoxMode >= 2){
+        //monospace Font
+        while (*ctext)
+        {            
+            if(*ctext == '\n'){
+                lineX = 0;
+                lineY += BDFHeader.bbHeight;
+                _numTextLines++;
+            }else{
+                if(isPrintable(*ctext)){
+                    if( (lineX + BDFHeader.bbWidth > lx) &&
+                        (lineY + BDFHeader.bbHeight > ly) 
+                    )
+                    {
+                        //we got a hit
+                        if(selectGlyph(*ctext)){
+                            return getGlyphPixel(lx - lineX, ly - lineY);
+                        }else{
+                            return COLORS::TRANSPARENT;
+                        }
+                                                        
+                    }
+                    
+                    lineX += BDFHeader.bbWidth;
+                }
+            }
+            ctext++;            
+        }
+        return COLORS::TRANSPARENT;
+    }else{
+        //need to work from start of text to end
+        while (*ctext)
+        {            
+            if(*ctext == '\n'){
+                lineX = 0;
+                lineY += BDFHeader.bbHeight;
+                _numTextLines++;
+            }else{
+                if(isPrintable(*ctext)){
+                    selectGlyph(*ctext);
+                    if( (lineX + _glyphData.pitch > lx) &&
+                        (lineY + BDFHeader.bbHeight > ly) 
+                    )
+                    {
+                        //we got a hit
+                        return getGlyphPixel(lx - lineX, ly - lineY);
+                    }
+                    
+                    lineX += _glyphData.pitch;
+                }
+            }
+            ctext++;            
+        }
+        return COLORS::TRANSPARENT;
+    }
+
 }
 
 box textHandle::getCurrentSize()
