@@ -378,7 +378,11 @@ void textHandle::changeFont(const uint8_t *font)
     // Serial.printf("offset_a: %d\r\n", BDFHeader.offset_a);
     // Serial.printf("offset_0x0100: %d\r\n", BDFHeader.offset_0x0100);
     _newArea = getTextSize();
-    _needUpdate = true;
+    
+    if(_visible)
+    {
+        _needUpdate = true;
+    }
 
     tryUpdateBuffer();
 }
@@ -394,7 +398,12 @@ void textHandle::changeText(const char *text)
         } 
 
         _newArea = getTextSize();
-        _needUpdate = true;
+        
+        if(_visible)
+        {
+            _needUpdate = true;
+        }
+        
         tryUpdateBuffer();
     }        
 }

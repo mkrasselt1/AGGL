@@ -27,6 +27,8 @@ void graphicsHandle::getUpdateArea(box * oldArea, box * newArea)
     {
         _oldArea.w = 0;
         _oldArea.h = 0;
+        newArea->w = 0;
+        newArea->h = 0;
     }
     _needUpdate = false;
 }
@@ -38,15 +40,21 @@ bool graphicsHandle::needUpdate()
 
 void graphicsHandle::show()
 {
-    _visible = true;
-    _needUpdate = true;
-    _newArea = getCurrentSize();
+    if(!_visible)
+    {
+        _visible = true;
+        _needUpdate = true;
+    }
 }
 
 void graphicsHandle::hide()
 {
-    _visible = false;
-    _needUpdate = true;
+    if(_visible)
+    {
+        _visible = false;
+        _needUpdate = true;
+    }
+    
 }
 
 void graphicsHandle::changePosition(int16_t x, int16_t y)

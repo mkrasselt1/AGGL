@@ -9,6 +9,21 @@ namespace AGGL
     std::vector<graphicsHandle*> elements;
     int32_t background = COLORS::BLACK;
 
+    namespace COLORS
+    {
+        int32_t fromRGB(uint8_t R, uint8_t G, uint8_t B)
+        {
+            return ((R<<16) | (G<<8) | (B));
+        }
+
+        uint8_t convert8Bit(int32_t color)
+        {        
+            return  ((color >> 16) & 0xE0) |
+                    ((color >> 11) & 0x1C) |
+                    ((color >> 6) & 0x03);
+        }
+    } // namespace COLORS
+    
     STATUS::code addDisplay(displayInterface* display)
     {
         if(display){
@@ -57,11 +72,15 @@ namespace AGGL
             }
         }
 
-        // Serial.println("Before Combination:");
-        // for (size_t i = 0; i < areaIndex; i++)
+        // if(areaIndex)
         // {
-        //     Serial.printf("AREA[%d] = (%d,%d) %d x %d\r\n", i, updateAreas[i].x, updateAreas[i].y, updateAreas[i].w, updateAreas[i].h);
+        //     Serial.println("Before Combination:");
+        //     for (size_t i = 0; i < areaIndex; i++)
+        //     {
+        //         Serial.printf("AREA[%d] = (%d,%d) %d x %d\r\n", i, updateAreas[i].x, updateAreas[i].y, updateAreas[i].w, updateAreas[i].h);
+        //     }
         // }
+        
 
         //Step 2: Combine Areas from list, if the Area of their intersection is less than their sum
         //should run nlogn or something
@@ -75,9 +94,11 @@ namespace AGGL
                 if(TOOLS::getRectArea(&bbBound) <= TOOLS::getRectArea(&(updateAreas[i])) + TOOLS::getRectArea(&(updateAreas[j])))
                 {
                     updateAreas[i] = bbBound;
+
+                    // Serial.printf("combined [%d] and [%d] into (%d,%d) %d x %d\r\n", i, j, bbBound.x, bbBound.y, bbBound.w, bbBound.h);
                     
                     //remove Area j from list
-                    for (size_t k = j; i < areaIndex - 1; i++)
+                    for (size_t k = j; k < areaIndex - 1; k++)
                     {
                         updateAreas[k] = updateAreas[k + 1];
                     }
@@ -96,6 +117,16 @@ namespace AGGL
 
         for(auto const& disp:displays)
         {
+            // if(areaIndex)
+            // {
+            //     Serial.println("After Combination:");
+            //     for (size_t i = 0; i < areaIndex; i++)
+            //     {
+            //         Serial.printf("AREA[%d] = (%d,%d) %d x %d\r\n", i, updateAreas[i].x, updateAreas[i].y, updateAreas[i].w, updateAreas[i].h);
+            //     }
+            //     Serial.println();
+            // }            
+
             for (size_t i = 0; i < areaIndex; i++)
             {
                 if(TOOLS::rectIntersect(disp->getSize(), &(updateAreas[i])))
@@ -314,13 +345,6 @@ namespace AGGL
             erg.h = (b->y + b->h) - erg.y;
 
         return erg;
-    }
-
-    uint8_t COLORS::convert8Bit(int32_t color)
-    {        
-        return  ((color) & 0xE0) |
-                ((color >> 11) & 0x1C) |
-                ((color >> 22) & 0x03);
     }
 
 } // namespace AGGL

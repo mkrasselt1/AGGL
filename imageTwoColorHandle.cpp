@@ -25,17 +25,28 @@ void imageTwoColorHandle::changeImage(int16_t x, int16_t y, uint16_t w, uint16_t
     _newArea.y = y;
     _newArea.w = w;
     _newArea.h = h;
-    _needUpdate = true;
+    if(_visible)
+    {
+        _needUpdate = true;
+    }
 }
 
 void imageTwoColorHandle::setForeground(int32_t color)
 {
     _foreground = color;
+    if(_visible)
+    {
+        _needUpdate = true;
+    }
 }
 
 void imageTwoColorHandle::setBackground(int32_t color)
 {
     _background = color;
+    if(_visible)
+    {
+        _needUpdate = true;
+    }
 }
 
 int32_t imageTwoColorHandle::getPixelAt(int16_t x, int16_t y)

@@ -32,9 +32,9 @@ namespace AGGL
             TRANSPARENT = -1,
             BLACK =     0x00000000,
             WHITE =     0x00FFFFFF,
-            RED =       0x000000FF,
+            RED =       0x00FF0000,
             GREEN =     0x0000FF00,
-            BLUE =      0x00FF0000,
+            BLUE =      0x000000FF,
             YELLOW =    0x00FFFF00
         }; 
         int32_t fromRGB(uint8_t R, uint8_t G, uint8_t B);
