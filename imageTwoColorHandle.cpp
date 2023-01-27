@@ -63,7 +63,7 @@ int32_t imageTwoColorHandle::getPixelAt(int16_t x, int16_t y)
         uint16_t bytewidth = _newArea.w/8;
         if(_newArea.w % 8) bytewidth++;
 
-        if(_imgBuf[ly*bytewidth + rx] & (1<<px)){
+        if(_imgBuf[ly*bytewidth + rx] & (1<<(7-px))){
             return _foreground;
         }else{
             return _background;

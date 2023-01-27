@@ -37,9 +37,9 @@ int32_t image8BitHandle::getPixelAt(int16_t x, int16_t y)
         int16_t lx = x - _newArea.x;
         int16_t ly = y - _newArea.y;
         int32_t color = _imgBuf[ly*_newArea.w + lx];
-        return (color & 0xE0) |
+        return ((color & 0x03) << 6) |
                 ((color & 0x1C) << 11) |
-                ((color & 0x03) << 22);
+                ((color & 0xE0) << 16);
     }
     return COLORS::TRANSPARENT;
 }
