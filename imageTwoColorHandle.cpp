@@ -3,13 +3,14 @@
 
 using namespace AGGL;
 
-imageTwoColorHandle::imageTwoColorHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t *image)
+imageTwoColorHandle::imageTwoColorHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t *image, bool reverseBitorder)
 {
     _imgBuf = image;
     _newArea.h = h;
     _newArea.w = w;
     _newArea.x = x;
     _newArea.y = y;
+    _reverseBitorder = reverseBitorder;
 
     _oldArea = _newArea;
 }
@@ -63,11 +64,20 @@ int32_t imageTwoColorHandle::getPixelAt(int16_t x, int16_t y)
         uint16_t bytewidth = _newArea.w/8;
         if(_newArea.w % 8) bytewidth++;
 
-        if(_imgBuf[ly*bytewidth + rx] & (1<<(7-px))){
-            return _foreground;
+        if(_reverseBitorder){
+            if(_imgBuf[ly*bytewidth + rx] & (1<<(7-px))){
+                return _foreground;
+            }else{
+                return _background;
+            }
         }else{
-            return _background;
+            if(_imgBuf[ly*bytewidth + rx] & (1<<(px))){
+                return _foreground;
+            }else{
+                return _background;
+            }
         }
+        
     }
     return COLORS::TRANSPARENT;
 }
