@@ -35,7 +35,8 @@ namespace AGGL
             RED =       0x00FF0000,
             GREEN =     0x0000FF00,
             BLUE =      0x000000FF,
-            YELLOW =    0x00FFFF00
+            YELLOW =    0x00FFFF00,
+            PEANUTPAY_8BIT = 0x004060C0
         }; 
         int32_t fromRGB(uint8_t R, uint8_t G, uint8_t B);
         uint8_t convert8Bit(int32_t color);
@@ -166,9 +167,10 @@ namespace AGGL
         const uint8_t * _imgBuf = nullptr;
         int32_t _foreground = COLORS::WHITE;
         int32_t _background = COLORS::TRANSPARENT;
+        bool _reverseBitorder;
 
         public:
-        imageTwoColorHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
+        imageTwoColorHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image, bool reverseBitorder = true);
         ~imageTwoColorHandle();
         void changeImage(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
         void setForeground(int32_t color);
