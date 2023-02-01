@@ -26,6 +26,7 @@ void imageTwoColorHandle::changeImage(int16_t x, int16_t y, uint16_t w, uint16_t
     _newArea.y = y;
     _newArea.w = w;
     _newArea.h = h;
+    
     if(_visible)
     {
         _needUpdate = true;
@@ -59,10 +60,13 @@ int32_t imageTwoColorHandle::getPixelAt(int16_t x, int16_t y)
         
         int16_t lx = x - _newArea.x;
         int16_t ly = y - _newArea.y;
+        lx = lx/_scale;
+        ly = ly/_scale;
+
         uint16_t rx = lx / 8;
         uint16_t px = lx % 8;
-        uint16_t bytewidth = _newArea.w/8;
-        if(_newArea.w % 8) bytewidth++;
+        uint16_t bytewidth = (_newArea.w/_scale)/8;
+        if((_newArea.w/_scale) % 8) bytewidth++;
 
         if(_reverseBitorder){
             if(_imgBuf[ly*bytewidth + rx] & (1<<(7-px))){
@@ -85,4 +89,14 @@ int32_t imageTwoColorHandle::getPixelAt(int16_t x, int16_t y)
 box AGGL::imageTwoColorHandle::getCurrentSize()
 {
     return _newArea;
+}
+
+void AGGL::imageTwoColorHandle::changeScale(uint8_t scale)
+{
+    if(_scale != scale){
+        _scale = scale;
+        _newArea.w = _newArea.w*scale;
+        _newArea.h = _newArea.h*scale;
+        _needUpdate = true;
+    }
 }

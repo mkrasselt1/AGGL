@@ -168,6 +168,7 @@ namespace AGGL
         int32_t _foreground = COLORS::WHITE;
         int32_t _background = COLORS::TRANSPARENT;
         bool _reverseBitorder;
+        uint8_t _scale = 1;
 
         public:
         imageTwoColorHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image, bool reverseBitorder = true);
@@ -177,6 +178,7 @@ namespace AGGL
         void setBackground(int32_t color);
         int32_t getPixelAt(int16_t x, int16_t y);      
         box getCurrentSize();    
+        void changeScale(uint8_t scale);
     };
 
     class image8BitHandle : public graphicsHandle
