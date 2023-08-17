@@ -19,11 +19,11 @@ imageTwoColorHandle::~imageTwoColorHandle()
 {
 }
 
-void imageTwoColorHandle::changeImage(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t *image)
+void imageTwoColorHandle::changeImage(uint16_t w, uint16_t h, const uint8_t *image)
 {
     _imgBuf = image;
-    _newArea.x = x;
-    _newArea.y = y;
+    _newArea.x = _oldArea.x;
+    _newArea.y = _oldArea.y;
     _newArea.w = w;
     _newArea.h = h;
     

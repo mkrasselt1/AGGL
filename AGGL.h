@@ -173,7 +173,7 @@ namespace AGGL
         public:
         imageTwoColorHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image, bool reverseBitorder = true);
         ~imageTwoColorHandle();
-        void changeImage(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t* image);
+        void changeImage(uint16_t w, uint16_t h, const uint8_t* image);
         void setForeground(int32_t color);
         void setBackground(int32_t color);
         int32_t getPixelAt(int16_t x, int16_t y);      
