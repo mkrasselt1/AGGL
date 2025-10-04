@@ -194,6 +194,41 @@ namespace AGGL
         box getCurrentSize();      
     };
 
+    class lineHandle : public graphicsHandle
+    {
+        private:
+        int16_t _x1, _y1, _x2, _y2;
+        int32_t _color = COLORS::WHITE;
+        uint8_t _thickness = 1;
+
+        public:
+        lineHandle(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int32_t color = COLORS::WHITE, uint8_t thickness = 1);
+        ~lineHandle();
+        void changeLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2);
+        void setColor(int32_t color);
+        void setThickness(uint8_t thickness);
+        int32_t getPixelAt(int16_t x, int16_t y);
+        box getCurrentSize();
+    };
+
+    class rectangleHandle : public graphicsHandle
+    {
+        private:
+        int32_t _fillColor = COLORS::WHITE;
+        int32_t _borderColor = COLORS::TRANSPARENT;
+        uint8_t _borderThickness = 0;
+
+        public:
+        rectangleHandle(int16_t x, int16_t y, uint16_t w, uint16_t h, int32_t fillColor = COLORS::WHITE, int32_t borderColor = COLORS::TRANSPARENT, uint8_t borderThickness = 0);
+        ~rectangleHandle();
+        void changeRectangle(int16_t x, int16_t y, uint16_t w, uint16_t h);
+        void setFillColor(int32_t color);
+        void setBorderColor(int32_t color);
+        void setBorderThickness(uint8_t thickness);
+        int32_t getPixelAt(int16_t x, int16_t y);
+        box getCurrentSize();
+    };
+
     STATUS::code addDisplay(displayInterface* display);
     STATUS::code update();
     STATUS::code start();
