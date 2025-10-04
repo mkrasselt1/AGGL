@@ -50,6 +50,10 @@ namespace AGGL
     } box;
     
 #define AGGL_BUFFER_SIZE_UNLIMITED (-1)
+    // Forward declarations for optimized rendering
+    class lineHandle;
+    class rectangleHandle;
+
     class displayInterface
     {
         protected:
@@ -63,6 +67,12 @@ namespace AGGL
         virtual int32_t getMaxBufferSize(){return AGGL_BUFFER_SIZE_UNLIMITED;}
         virtual STATUS::code update(box bb, uint8_t* buffer){return STATUS::GENERAL_ERROR;}
         virtual box adjustUpdateBox(box bb){return bb;}
+        
+        // Hardware-accelerated rendering functions (optional overrides)
+        virtual bool hasHardwareAcceleration(){return false;}
+        virtual STATUS::code drawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int32_t color, uint8_t thickness){return STATUS::NOT_SUPPORTED;}
+        virtual STATUS::code drawRectangle(int16_t x, int16_t y, uint16_t w, uint16_t h, int32_t fillColor, int32_t borderColor, uint8_t borderThickness){return STATUS::NOT_SUPPORTED;}
+        virtual STATUS::code fillRectangle(int16_t x, int16_t y, uint16_t w, uint16_t h, int32_t color){return STATUS::NOT_SUPPORTED;}
         
         box* getSize();
         
@@ -87,12 +97,18 @@ namespace AGGL
         virtual ~graphicsHandle(){removeHandle();}
         virtual int32_t getPixelAt(int16_t x, int16_t y){return 0;}
         virtual box getCurrentSize(){return box();}
+        
+        // New methods for hardware acceleration
+        virtual bool canUseHardwareAcceleration(){return false;}
+        virtual STATUS::code renderToDisplay(displayInterface* display){return STATUS::NOT_SUPPORTED;}
+        
         void show();
         void hide();
         void changePosition(int16_t x, int16_t y);
 
 
         friend STATUS::code update();
+        friend STATUS::code updateWithHardwareAcceleration();
         friend int32_t getPixelAt(int16_t x, int16_t y);
     };
 
@@ -209,6 +225,10 @@ namespace AGGL
         void setThickness(uint8_t thickness);
         int32_t getPixelAt(int16_t x, int16_t y);
         box getCurrentSize();
+        
+        // Hardware acceleration support
+        bool canUseHardwareAcceleration() override;
+        STATUS::code renderToDisplay(displayInterface* display) override;
     };
 
     class rectangleHandle : public graphicsHandle
@@ -227,11 +247,26 @@ namespace AGGL
         void setBorderThickness(uint8_t thickness);
         int32_t getPixelAt(int16_t x, int16_t y);
         box getCurrentSize();
+        
+        // Hardware acceleration support
+        bool canUseHardwareAcceleration() override;
+        STATUS::code renderToDisplay(displayInterface* display) override;
     };
 
     STATUS::code addDisplay(displayInterface* display);
     STATUS::code update();
+    STATUS::code updateWithHardwareAcceleration();
     STATUS::code start();
+
+    namespace OPTIMIZED_RENDERING
+    {
+        void drawHorizontalLine(uint8_t* buffer, int16_t x1, int16_t x2, int16_t y, 
+                               int16_t bufferWidth, int32_t color, COLOR_MODE::colormode mode);
+        void drawVerticalLine(uint8_t* buffer, int16_t x, int16_t y1, int16_t y2, 
+                             int16_t bufferWidth, int32_t color, COLOR_MODE::colormode mode);
+        void fillRectangle(uint8_t* buffer, int16_t x, int16_t y, uint16_t w, uint16_t h,
+                          int16_t bufferWidth, int32_t color, COLOR_MODE::colormode mode);
+    }
 
     namespace TOOLS
     {

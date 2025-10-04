@@ -87,11 +87,11 @@ int32_t lineHandle::getPixelAt(int16_t x, int16_t y)
         (y >= _newArea.y) && (y < _newArea.y + _newArea.h)
     )
     {
-        // Calculate distance from point to line using the point-to-line distance formula
+        // Optimized line drawing algorithm
         int32_t dx = _x2 - _x1;
         int32_t dy = _y2 - _y1;
         
-        // Handle special cases for horizontal and vertical lines
+        // Handle special cases for horizontal and vertical lines (faster)
         if(dx == 0) // Vertical line
         {
             if(abs(x - _x1) <= _thickness/2 && 
@@ -108,21 +108,24 @@ int32_t lineHandle::getPixelAt(int16_t x, int16_t y)
                 return _color;
             }
         }
-        else // Diagonal line
+        else // Diagonal line - use optimized distance calculation
         {
-            // Distance from point (x,y) to line
+            // Use integer arithmetic for better performance
             int32_t A = dy;
             int32_t B = -dx;
             int32_t C = dx * _y1 - dy * _x1;
             
-            int32_t distance_sq = (A * x + B * y + C) * (A * x + B * y + C);
-            int32_t line_length_sq = dx * dx + dy * dy;
+            // Distance squared from point to line (avoiding sqrt for performance)
+            int64_t distance_sq = (int64_t)(A * x + B * y + C) * (A * x + B * y + C);
+            int64_t line_length_sq = (int64_t)dx * dx + (int64_t)dy * dy;
             
             // Check if point is within thickness of the line
-            if(distance_sq <= (_thickness * _thickness * line_length_sq) / 4)
+            int64_t threshold = ((int64_t)_thickness * _thickness * line_length_sq) / 4;
+            
+            if(distance_sq <= threshold)
             {
-                // Check if point is within the line segment bounds
-                int32_t dot_product = (x - _x1) * dx + (y - _y1) * dy;
+                // Check if point is within the line segment bounds using dot product
+                int64_t dot_product = (int64_t)(x - _x1) * dx + (int64_t)(y - _y1) * dy;
                 if(dot_product >= 0 && dot_product <= line_length_sq)
                 {
                     return _color;
@@ -136,4 +139,25 @@ int32_t lineHandle::getPixelAt(int16_t x, int16_t y)
 box lineHandle::getCurrentSize()
 {
     return _newArea;
+}
+
+bool lineHandle::canUseHardwareAcceleration()
+{
+    return true; // Lines are commonly hardware-accelerated
+}
+
+STATUS::code lineHandle::renderToDisplay(displayInterface* display)
+{
+    if(display->hasHardwareAcceleration())
+    {
+        // Try hardware-accelerated rendering first
+        STATUS::code result = display->drawLine(_x1, _y1, _x2, _y2, _color, _thickness);
+        if(result == STATUS::OK)
+        {
+            return STATUS::OK;
+        }
+    }
+    
+    // Fall back to software rendering if hardware acceleration not available
+    return STATUS::NOT_SUPPORTED;
 }

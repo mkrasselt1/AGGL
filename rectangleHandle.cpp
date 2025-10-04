@@ -90,3 +90,25 @@ box rectangleHandle::getCurrentSize()
 {
     return _newArea;
 }
+
+bool rectangleHandle::canUseHardwareAcceleration()
+{
+    return true; // Rectangles are commonly hardware-accelerated
+}
+
+STATUS::code rectangleHandle::renderToDisplay(displayInterface* display)
+{
+    if(display->hasHardwareAcceleration())
+    {
+        // Try hardware-accelerated rendering first
+        STATUS::code result = display->drawRectangle(_newArea.x, _newArea.y, _newArea.w, _newArea.h, 
+                                                    _fillColor, _borderColor, _borderThickness);
+        if(result == STATUS::OK)
+        {
+            return STATUS::OK;
+        }
+    }
+    
+    // Fall back to software rendering if hardware acceleration not available
+    return STATUS::NOT_SUPPORTED;
+}

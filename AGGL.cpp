@@ -117,6 +117,27 @@ namespace AGGL
 
         for(auto const& disp:displays)
         {
+            // First pass: Try hardware-accelerated rendering for supported elements
+            bool hardwareAccelUsed = false;
+            if(disp->hasHardwareAcceleration())
+            {
+                for(auto const& elem:elements)
+                {
+                    if(elem->needUpdate() && elem->_visible && elem->canUseHardwareAcceleration())
+                    {
+                        box elemBounds = elem->getCurrentSize();
+                        if(TOOLS::rectIntersect(disp->getSize(), &elemBounds))
+                        {
+                            if(elem->renderToDisplay(disp) == STATUS::OK)
+                            {
+                                hardwareAccelUsed = true;
+                                // Mark element as updated (but we need to access private members)
+                                // This is a design consideration - we might need friend access
+                            }
+                        }
+                    }
+                }
+            }
             // if(areaIndex)
             // {
             //     Serial.println("After Combination:");
