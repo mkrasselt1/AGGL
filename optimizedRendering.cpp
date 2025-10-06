@@ -8,8 +8,8 @@ namespace AGGL
     STATUS::code updateWithHardwareAcceleration()
     {
         // Step 1: Identify elements that can use hardware acceleration
-        std::vector<graphicsHandle*> hardwareElements;
-        std::vector<graphicsHandle*> softwareElements;
+        vector<graphicsHandle*> hardwareElements;
+        vector<graphicsHandle*> softwareElements;
         
         for (auto const& elem : elements)
         {
@@ -65,7 +65,7 @@ namespace AGGL
         void drawHorizontalLine(uint8_t* buffer, int16_t x1, int16_t x2, int16_t y, 
                                int16_t bufferWidth, int32_t color, COLOR_MODE::colormode mode)
         {
-            if(x1 > x2) std::swap(x1, x2);
+            if(x1 > x2) swap(x1, x2);
             
             for(int16_t x = x1; x <= x2; x++)
             {
@@ -87,7 +87,7 @@ namespace AGGL
         void drawVerticalLine(uint8_t* buffer, int16_t x, int16_t y1, int16_t y2, 
                              int16_t bufferWidth, int32_t color, COLOR_MODE::colormode mode)
         {
-            if(y1 > y2) std::swap(y1, y2);
+            if(y1 > y2) swap(y1, y2);
             
             for(int16_t y = y1; y <= y2; y++)
             {

@@ -46,7 +46,7 @@ bool textHandle::selectGlyph(uint16_t code)
     
     if(charCode != code)
     {
-        Serial.printf("Glyph %04X not found\r\n", code);
+        AGGL_LOG_ERROR("Glyph %04X not found", code);
         return false;
     }
 

@@ -5,8 +5,8 @@
 namespace AGGL
 {
 
-    std::vector<displayInterface*> displays;
-    std::vector<graphicsHandle*> elements;
+    vector<displayInterface*> displays;
+    vector<graphicsHandle*> elements;
     int32_t background = COLORS::BLACK;
 
     namespace COLORS
@@ -170,7 +170,7 @@ namespace AGGL
                                 break;
                             
                             default:
-                                Serial.println("Unsupported Color Mode");
+                                AGGL_LOG_ERROR("Unsupported Color Mode");
                                 return STATUS::NOT_SUPPORTED;
                                 break;
                         }
@@ -180,7 +180,7 @@ namespace AGGL
                         if(!maxRows)
                         {
                             //can't even do a single line
-                            Serial.println("OOM");
+                            AGGL_LOG_ERROR("OOM");
                             return STATUS::OUT_OF_MEMORY;
                         }
 

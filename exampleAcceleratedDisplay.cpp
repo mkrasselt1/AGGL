@@ -56,7 +56,7 @@ public:
         // Hardware-specific line drawing implementation
         // Example pseudo-code:
         /*
-        display.setWindow(min(x1,x2), min(y1,y2), abs(x2-x1)+thickness, abs(y2-y1)+thickness);
+        display.setWindow(AGGL_MIN(x1,x2), AGGL_MIN(y1,y2), AGGL_ABS(x2-x1)+thickness, AGGL_ABS(y2-y1)+thickness);
         display.drawLine(x1, y1, x2, y2, displayColor, thickness);
         */
         

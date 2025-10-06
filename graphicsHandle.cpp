@@ -13,8 +13,9 @@ graphicsHandle::graphicsHandle()
 
 void graphicsHandle::removeHandle()
 {
-    if(std::find(elements.begin(), elements.end(), this) != elements.end()){
-        elements.erase(std::find(elements.begin(), elements.end(), this));
+    auto it = find(elements.begin(), elements.end(), this);
+    if(it != elements.end()){
+        elements.erase(it);
     }
 }
 

@@ -13,10 +13,10 @@ lineHandle::lineHandle(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int32_t c
     _thickness = thickness;
     
     // Calculate bounding box
-    _newArea.x = min(x1, x2) - thickness/2;
-    _newArea.y = min(y1, y2) - thickness/2;
-    _newArea.w = abs(x2 - x1) + thickness;
-    _newArea.h = abs(y2 - y1) + thickness;
+    _newArea.x = AGGL_MIN(x1, x2) - thickness/2;
+    _newArea.y = AGGL_MIN(y1, y2) - thickness/2;
+    _newArea.w = AGGL_ABS(x2 - x1) + thickness;
+    _newArea.h = AGGL_ABS(y2 - y1) + thickness;
     
     // Handle horizontal and vertical lines
     if(_newArea.w == thickness) _newArea.w = thickness;
@@ -37,10 +37,10 @@ void lineHandle::changeLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2)
     _y2 = y2;
     
     // Recalculate bounding box
-    _newArea.x = min(x1, x2) - _thickness/2;
-    _newArea.y = min(y1, y2) - _thickness/2;
-    _newArea.w = abs(x2 - x1) + _thickness;
-    _newArea.h = abs(y2 - y1) + _thickness;
+    _newArea.x = AGGL_MIN(x1, x2) - _thickness/2;
+    _newArea.y = AGGL_MIN(y1, y2) - _thickness/2;
+    _newArea.w = AGGL_ABS(x2 - x1) + _thickness;
+    _newArea.h = AGGL_ABS(y2 - y1) + _thickness;
     
     // Handle horizontal and vertical lines
     if(_newArea.w == _thickness) _newArea.w = _thickness;
@@ -66,10 +66,10 @@ void lineHandle::setThickness(uint8_t thickness)
     _thickness = thickness;
     
     // Recalculate bounding box
-    _newArea.x = min(_x1, _x2) - _thickness/2;
-    _newArea.y = min(_y1, _y2) - _thickness/2;
-    _newArea.w = abs(_x2 - _x1) + _thickness;
-    _newArea.h = abs(_y2 - _y1) + _thickness;
+    _newArea.x = AGGL_MIN(_x1, _x2) - _thickness/2;
+    _newArea.y = AGGL_MIN(_y1, _y2) - _thickness/2;
+    _newArea.w = AGGL_ABS(_x2 - _x1) + _thickness;
+    _newArea.h = AGGL_ABS(_y2 - _y1) + _thickness;
     
     // Handle horizontal and vertical lines
     if(_newArea.w == _thickness) _newArea.w = _thickness;
@@ -94,16 +94,16 @@ int32_t lineHandle::getPixelAt(int16_t x, int16_t y)
         // Handle special cases for horizontal and vertical lines (faster)
         if(dx == 0) // Vertical line
         {
-            if(abs(x - _x1) <= _thickness/2 && 
-               y >= min(_y1, _y2) && y <= max(_y1, _y2))
+            if(AGGL_ABS(x - _x1) <= _thickness/2 && 
+               y >= AGGL_MIN(_y1, _y2) && y <= AGGL_MAX(_y1, _y2))
             {
                 return _color;
             }
         }
         else if(dy == 0) // Horizontal line
         {
-            if(abs(y - _y1) <= _thickness/2 && 
-               x >= min(_x1, _x2) && x <= max(_x1, _x2))
+            if(AGGL_ABS(y - _y1) <= _thickness/2 && 
+               x >= AGGL_MIN(_x1, _x2) && x <= AGGL_MAX(_x1, _x2))
             {
                 return _color;
             }

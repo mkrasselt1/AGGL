@@ -1,6 +1,8 @@
 #ifndef AGGL_H
 #define AGGL_H
-#include <Arduino.h>
+
+// Include platform abstraction layer
+#include "aggl_platform.h"
 
 namespace AGGL
 {
