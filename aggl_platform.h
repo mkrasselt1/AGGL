@@ -24,6 +24,7 @@
     #include <cmath>
     #include <cstring>
     #include <cstdint>
+    #include <cctype>
     #include <vector>
 
     #define AGGL_PLATFORM_ESP_IDF
@@ -34,6 +35,12 @@
     #define AGGL_MIN(a,b) std::min(a,b)
     #define AGGL_MAX(a,b) std::max(a,b)
     #define AGGL_ABS(a) std::abs(a)
+
+    // Arduino-style isPrintable() doesn't exist in ESP-IDF — map to the
+    // standard C equivalent. Cast keeps isprint well-defined for chars
+    // >= 0x80 (signed char would otherwise wrap into negative ints and
+    // hit isprint's undefined-behaviour zone).
+    #define isPrintable(c) (isprint((unsigned char)(c)) != 0)
 
     // ESP-IDF specific types and functions
     using std::vector;
