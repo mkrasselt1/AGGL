@@ -4,6 +4,10 @@
 // Include platform abstraction layer
 #include "aggl_platform.h"
 
+// Vendored u8g2 font bundle — exposes u8g2_font_*_mf etc. as extern symbols
+// so callers can pass them directly to AGGL::textHandle.
+#include "u8g2_fonts.h"
+
 namespace AGGL
 {
     namespace STATUS
