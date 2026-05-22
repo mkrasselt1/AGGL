@@ -24,6 +24,7 @@
     #include <cmath>
     #include <cstring>
     #include <cstdint>
+    #include <vector>
 
     #define AGGL_PLATFORM_ESP_IDF
     #define AGGL_LOG(...) ESP_LOGI("AGGL", __VA_ARGS__)
